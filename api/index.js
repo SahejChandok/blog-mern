@@ -5,11 +5,13 @@ const User = require('./models/User');
 const bcrypt = require('bcryptjs');
 const app = express();
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 const salt = bcrypt.genSaltSync(10);
 const secret = 'asdfghjk';
 app.use(cors({credentials: true, origin:'http://localhost:3000'}));
 app.use(express.json());
+app.use(cookieParser());
 mongoose.connect('mongodb+srv://blog:LSi5lv5KvVkh2Vu0@cluster0.s2yjx1u.mongodb.net/?retryWrites=true&w=majority')
 
 app.post('/register', async (req, res) =>{
@@ -33,7 +35,10 @@ app.post('/login', async (req,res)=>{
     if(passOk){
         jwt.sign({username, id:userDoc._id}, secret, {}, (err, token)=>{
             if (err) throw err;
-            res.cookie('token', token).json('ok');
+            res.cookie('token', token).json({
+                id:userDoc._id,
+                username,
+            });
         });
     }
     else{
@@ -41,5 +46,16 @@ app.post('/login', async (req,res)=>{
     }
 });
 
+app.get('/profile', (req,res)=>{
+    const {token} = req.cookies;
+    jwt.verify(token, secret, {}, (err, info)=>{
+        if(err) throw err;
+        res.json(info)
+    });
+});
+
+app.post('/logout', (req,res)=>{
+res.cookie('token','').json('ok');
+});
 app.listen(4000);
 
